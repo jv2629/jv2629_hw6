@@ -14,6 +14,7 @@ knitr::opts_chunk$set(
 )
 library(tidyverse)
 library(RCurl)
+library(modelr)
 ```
 
 #Introduction
@@ -31,12 +32,12 @@ hom_raw = read_csv("https://raw.githubusercontent.com/washingtonpost/data-homici
 ```{r}
 hom_clean = hom_raw %>% 
   mutate(city_state = paste(city, state, sep = ', '),
-         outcome = as.factor(ifelse(disposition == 'Closed by arrest', 'solved', 'unsolved'))) %>% 
+         outcome = as.factor(ifelse(disposition == 'Closed by arrest', 1, 0))) %>% 
   filter(!(city_state %in% c("Dallas, TX", "Phoenix, AZ", "Kansas City, MO", "Tulsa, AL"))) %>% 
-  mutate(victim_race = as.factor(ifelse(victim_race == 'White', 'white', 'non-white' )),
+   mutate(victim_race = as.factor(ifelse(victim_race == "White", "white", "non-white" )),
          victim_age = as.numeric(victim_age),
          victim_sex = as.factor(victim_sex),
-         victim_race = fct_relevel(victim_race, "white"))
+         victim_race = fct_relevel(victim_race, "white", "non-white"))
 
 ```
 
@@ -48,10 +49,10 @@ hom_balt = hom_raw %>%
          outcome = as.factor(ifelse(disposition == 'Closed by arrest', 'solved', 'unsolved'))) %>% 
   filter(!(city_state %in% c("Dallas, TX", "Phoenix, AZ", "Kansas City, MO", "Tulsa, AL"))) %>% 
   filter(city_state == "Baltimore, MD") %>% 
-  mutate(victim_race = as.factor(ifelse(victim_race == 'White', 'white', 'non-white' )),
+  mutate(victim_race = as.factor(ifelse(victim_race == "White", "white", "non-white" )),
          victim_age = as.numeric(victim_age),
          victim_sex = as.factor(victim_sex),
-         victim_race = fct_relevel(victim_race, "white"))
+         victim_race = fct_relevel(victim_race, "white", "non-white"))
 
 balt_outcomes = hom_balt %>% 
    glm(outcome ~ victim_age + victim_race + victim_sex, data = ., family = binomial()) %>% 
@@ -73,13 +74,13 @@ glm_resolv_func = function(df){
  glm(df$outcome ~ df$victim_age + df$victim_race + df$victim_sex, data = df, family = binomial()) %>% 
     broom::tidy() %>% 
   mutate(OR = exp(estimate),
-         low_OR = exp(estimate*1.96 - std.error),
-         high_OR = exp(estimate*1.96 + std.error)) %>%
+         low_OR = exp((estimate*1.96) - std.error),
+         high_OR = exp((estimate*1.96) + std.error)) %>%
   select(term, OR, low_OR, high_OR)
 }
 ```
 
-Run function.
+Run function and create data frame.
 ```{r}
 hom_nest = nest(hom_glm, victim_race:outcome)
 
@@ -89,6 +90,20 @@ or_outcomes = hom_nest %>%
   select(-data) %>% 
   unnest() %>% 
   janitor::clean_names()
+```
 
+Plot of victim race for each city. 
+```{r}
+race_plot = or_outcomes %>% 
+  filter(term == "df$victim_racenon-white")
+
+race_plot %>% 
+  mutate(city_state = fct_reorder(city_state, or)) %>% 
+ggplot(aes(x = city_state, y = or)) +
+  coord_flip() +
+  geom_point() + 
+  geom_errorbar(aes(ymin = low_or, ymax = high_or)) +
+  theme(axis.text.x = element_text(angle = 80, hjust = 1)) +
+  labs(x = "City", y = "Odds of Solved Murder based on Race (White v Non-White)")
 ```
 
