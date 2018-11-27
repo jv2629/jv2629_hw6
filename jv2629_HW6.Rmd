@@ -1,0 +1,40 @@
+---
+title: "jv2629_hw6"
+author: "Jaclyn Verity - jv2629"
+date: "November 27, 2018"
+output: github_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+knitr::opts_chunk$set(
+  fig.width = 6,
+  fig.asp = .6,
+  out.width = "90%"
+)
+library(tidyverse)
+library(RCurl)
+```
+
+#Introduction
+This document is to practice using linear models and graphing them for the Data Science Course HW 6.
+
+#Problem 1
+
+**Load the data.**
+```{r}
+require(RCurl)
+hom_raw = read_csv("https://raw.githubusercontent.com/washingtonpost/data-homicides/master/homicide-data.csv") 
+```
+
+**Clean the data.**
+```{r}
+hom_clean = hom_raw %>% 
+  mutate(city_state = paste(city, state, sep = ', '),
+         outcome = as.factor(ifelse(disposition == 'Closed by arrest', 'solved', 'unsolved'))) %>% 
+  filter(!(city_state %in% c('Dallas,TX', 'Phoenix, AZ', 'Kansas City, MO', 'Tulsa, AL'))) %>% 
+  mutate(victim_race = as.factor(ifelse(victim_race == 'White', 'white', 'non-white' )),
+         victim_age = as.numeric(victim_age))
+
+```
+
