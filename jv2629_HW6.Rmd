@@ -107,3 +107,28 @@ ggplot(aes(x = city_state, y = or)) +
   labs(x = "City", y = "Odds of Solved Murder based on Race (White v Non-White)")
 ```
 
+#Problem 2
+
+**Load and clean data set for analysis on birthweight.**
+```{r}
+raw_birth = read_csv("./data/birthweight.csv") %>% 
+  janitor::clean_names()
+```
+
+A number of studies have researched what influences a baby's birthweight. From my experience with the literature I am selecting:
+- ppbmi = mother's pre pregnancy bmi (pounds)
+- gaweeks = gestational age (weeks)
+- smoken = average number of cigarettes smoked per day during pregnancy
+
+A mother's pre pregnancy bmi has been shown to incease a babys birthweight by 37 grams for every 1 unit increase in bmi. Baby's meet milestones for development and weight at certain ages of gestation, it's age at birth will be related to birth weight. Smoking has also been shown to affect babies development which will affect the birth weight. 
+
+**Clean data for linear regressions.**
+```{r}
+clean_birth = raw_birth %>% 
+  select(blength, bwt, bhead, babysex, ppbmi, gaweeks, smoken) %>% 
+  mutate(babysex = as.factor(babysex))
+
+na.omit(clean_birth)
+```
+
+
