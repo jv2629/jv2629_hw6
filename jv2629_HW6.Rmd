@@ -75,13 +75,12 @@ glm_resolv_func = function(df){
   mutate(OR = exp(estimate),
          low_OR = exp(estimate*1.96 - std.error),
          high_OR = exp(estimate*1.96 + std.error)) %>%
-  select(OR, low_OR, high_OR, p.value) %>% 
-  knitr::kable(digits = 3)
+  select(term, OR, low_OR, high_OR)
 }
 ```
 
-
-
+Run function.
+```{r}
 hom_nest = nest(hom_glm, victim_race:outcome)
 
 or_outcomes = hom_nest %>% 
@@ -90,6 +89,6 @@ or_outcomes = hom_nest %>%
   select(-data) %>% 
   unnest() %>% 
   janitor::clean_names()
-  
+
 ```
 
