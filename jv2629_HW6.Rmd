@@ -63,6 +63,8 @@ balt_outcomes = hom_balt %>%
          high_OR = exp(estimate*1.96 + std.error)) %>%
   select(OR, low_OR, high_OR, p.value) %>% 
   knitr::kable(digits = 3)
+
+balt_outcomes
 ```
 
 Creating a function for running glm and pulling it into a table.
@@ -165,6 +167,8 @@ fit1 %>%
 
 My models r squared value is 0.185 which indicates that my model can explain 18.5% of the variance we see in birth weight. The length and gestational age model has an r squared value of 0.577 so 57.7% of the variation in birth weight is explained by this model. 
 
+
+Head circumfrence, baby sex, and length at birth.
 ```{r}
 fit2 = lm(bwt ~ bhead + blength + babysex + (bhead*blength) + (bhead*babysex) + (blength*babysex) + (bhead*blength*babysex), data = clean_birth)
 fit2 %>% broom::glance()
@@ -176,6 +180,7 @@ fit2 %>%
 
 My models r squared value is 0.185 which indicates that my model can explain 18.5% of the variance we see in birth weight.The length, head circumfrence, and baby sex model has an r squared value of 0.685 so 68.5% of the variation in birth weight is explained by this model.
 
+**Create cross validation.**
 ```{r}
 set.seed(216)
 cv_birth = crossv_mc(clean_birth, 100)
@@ -190,3 +195,14 @@ cv_birth =
          rmse_mod2 = map2_dbl(mod2, test, ~rmse(model = .x, data = .y)))
 ```
 
+**Plot RMSE.**
+```{r}
+cv_birth %>% 
+  select(starts_with("rmse")) %>% 
+  gather(key = model, value = rmse) %>% 
+  mutate(model = str_replace(model, "rmse_", ""),
+         model = fct_inorder(model)) %>% 
+  ggplot(aes(x = model, y = rmse)) + geom_violin()
+```
+
+The plot shows the root mean square errors (RMSE) for my model and the two comparison models. My model has a (RMSE) of about 460, Model 1 RMSE = 340, and Model 2 = 280. The RMSE is a measure of the unexplained variance and if it is low then the model does not have a wide range of unexplained variance. Model 2 (the model with head circumfrence, length, sex, and the interactions) is the best model with the smallest RMSE.
