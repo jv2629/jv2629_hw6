@@ -15,6 +15,7 @@ knitr::opts_chunk$set(
 library(tidyverse)
 library(RCurl)
 library(modelr)
+library(mgcv)
 ```
 
 #Introduction
@@ -140,5 +141,52 @@ fit %>%
   broom::tidy() %>% 
   select(term, estimate, p.value) %>% 
   knitr::kable(digits = 3)
+```
+
+**Plot residuals against predictions.**
+```{r}
+clean_birth %>% 
+  modelr::add_residuals(fit) %>% 
+  modelr::add_predictions(fit) %>% 
+  ggplot(aes(x = pred, y = resid)) + geom_point()
+```
+
+**Compare my model to other models.**
+
+Length and gestational age.
+```{r}
+fit1 = lm(bwt ~ blength + gaweeks, data = clean_birth)
+fit1 %>% broom::glance()
+fit1 %>% 
+  broom::tidy() %>% 
+  select(term, estimate, p.value) %>% 
+  knitr::kable(digits = 3)
+```
+
+My models r squared value is 0.185 which indicates that my model can explain 18.5% of the variance we see in birth weight. The length and gestational age model has an r squared value of 0.577 so 57.7% of the variation in birth weight is explained by this model. 
+
+```{r}
+fit2 = lm(bwt ~ bhead + blength + babysex + (bhead*blength) + (bhead*babysex) + (blength*babysex) + (bhead*blength*babysex), data = clean_birth)
+fit2 %>% broom::glance()
+fit2 %>% 
+  broom::tidy() %>% 
+  select(term, estimate, p.value) %>% 
+  knitr::kable(digits = 3)
+```
+
+My models r squared value is 0.185 which indicates that my model can explain 18.5% of the variance we see in birth weight.The length, head circumfrence, and baby sex model has an r squared value of 0.685 so 68.5% of the variation in birth weight is explained by this model.
+
+```{r}
+set.seed(216)
+cv_birth = crossv_mc(clean_birth, 100)
+cv_birth = 
+  cv_birth %>% 
+  mutate(
+    my_mod = map(train, ~fit),
+    mod1 = map(train, ~fit1),
+    mod2 = map(train, ~fit2)) %>% 
+  mutate(rmse_my_mod    = map2_dbl(my_mod, test, ~rmse(model = .x, data = .y)),
+         rmse_mod1 = map2_dbl(mod1, test, ~rmse(model = .x, data = .y)),
+         rmse_mod2 = map2_dbl(mod2, test, ~rmse(model = .x, data = .y)))
 ```
 
